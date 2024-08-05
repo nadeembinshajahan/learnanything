@@ -2,6 +2,7 @@ import axios from 'axios';
 
 export default async function handler(req, res) {
   const { submoduleTitle } = req.body;
+  const AI71_API_KEY = process.env.AI71_API_KEY;
 
   try {
     const response = await axios.post('https://api.ai71.ai/v1/chat/completions', {
@@ -11,7 +12,7 @@ export default async function handler(req, res) {
         { role: "user", content: submoduleTitle },
       ],
     }, {
-      headers: { Authorization: `Bearer ${process.env.AI71_API_KEY}` }
+      headers: { Authorization: `Bearer ${AI71_API_KEY}` }
     });
 
     const detailedContent = response.data.choices[0].message.content.replace(/User:.*$/s, '').trim();

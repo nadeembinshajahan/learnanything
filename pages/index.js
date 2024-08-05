@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import Image from 'next/image';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../app/globals.css';
 import ModuleDetail from '../components/ModuleDetail';
@@ -11,6 +10,25 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [expandedModule, setExpandedModule] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [searched, setSearched] = useState(false);
+
+  useEffect(() => {
+    if (modules.length > 0) {
+      modules.forEach(module => {
+        module.submodules.forEach(async submodule => {
+          try {
+            const response = await axios.post('/api/detail', { submoduleTitle: submodule });
+            setDetailedContents(prevState => ({
+              ...prevState,
+              [submodule]: response.data.detailedContent,
+            }));
+          } catch (error) {
+            console.error('Error fetching detailed content:', error);
+          }
+        });
+      });
+    }
+  }, [modules]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,23 +36,11 @@ export default function Home() {
     setModules([]);
     setDetailedContents({});
     setExpandedModule(null);
+    setSearched(true);
 
     try {
       const response = await axios.post('/api/modules', { topic });
-      const modules = response.data.modules;
-
-      // Fetch detailed content for each submodule in parallel
-      const detailedPromises = modules.flatMap(module => 
-        module.submodules.map(submodule => 
-          axios.post('/api/detail', { submoduleTitle: submodule }).then(res => [submodule, res.data.detailedContent])
-        )
-      );
-
-      const detailedResults = await Promise.all(detailedPromises);
-      const detailedContents = Object.fromEntries(detailedResults);
-
-      setModules(modules);
-      setDetailedContents(detailedContents);
+      setModules(response.data.modules);
     } catch (error) {
       console.error('Error fetching modules:', error);
     } finally {
@@ -67,10 +73,14 @@ export default function Home() {
         {modules.length > 0 && modules.map((module, index) => (
           <div key={index} className="p-4 rounded-lg mb-4 bg-teal-700 text-white cursor-pointer hover:bg-teal-800" onClick={() => handleModuleClick(module)}>
             <h2 className="text-xl font-bold">{module.title}</h2>
-            <p>{module.submodules.join(', ')}</p>
+            <ul>
+              {module.submodules.map((submodule, subIndex) => (
+                <li key={subIndex}>{submodule}</li>
+              ))}
+            </ul>
           </div>
         ))}
-        {modules.length === 0 && !loading && <p className="col-span-full text-center">No modules found. Try a different topic.</p>}
+        {searched && modules.length === 0 && !loading && <p className="col-span-full text-center">No modules found. Try a different topic.</p>}
       </div>
       {showDetail && expandedModule && (
         <ModuleDetail
