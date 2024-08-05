@@ -17,6 +17,10 @@
 }
 
 body {
+  font-family: 'Inconsolata', monospace;
+}
+
+body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
       to bottom,
@@ -30,4 +34,29 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+:root {
+  --cream-light: #FFFDE7;
+  --cream-dark: #FFECB3;
+  --cream-dark-200: #FFE082;
+}
+
+.dark-mode {
+  --cream-light: #333;
+  --cream-dark: #555;
+  --cream-dark-200: #777;
+}
+
+body.light-mode {
+  --background-blur-color: rgba(255, 255, 255, 0.6);
+}
+
+body.dark-mode {
+  --background-blur-color: rgba(0, 0, 0, 0.6);
+}
+
+.blur-background {
+  backdrop-filter: blur(10px);
+  background-color: var(--background-blur-color);
 }

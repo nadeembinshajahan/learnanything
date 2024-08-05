@@ -19,8 +19,8 @@ const ModuleDetail = ({ module, submodules, detailedContents, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white text-black p-6 rounded-lg shadow-lg w-full max-w-4xl relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-black">X</button>
+      <div className="bg-white text-black p-6 rounded-lg shadow-lg w-full max-w-4xl relative dark:bg-gray-700 dark:text-white">
+        <button onClick={onClose} className="absolute top-4 right-4 text-black dark:text-white">X</button>
         <h2 className="text-2xl font-bold mb-4">{module.title}</h2>
         <div className="mb-4 max-h-96 overflow-y-auto">
           <h3 className="text-xl font-semibold">{submodules[currentSlide]}</h3>
