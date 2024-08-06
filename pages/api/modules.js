@@ -1,15 +1,15 @@
 import axios from 'axios';
 
 export default async function handler(req, res) {
-  const { topic } = req.body;
+  const { topic, knowledgeStrength } = req.body;
   const AI71_API_KEY = process.env.AI71_API_KEY;
 
   try {
     const response = await axios.post('https://api.ai71.ai/v1/chat/completions', {
       model: "tiiuae/falcon-180B-chat",
       messages: [
-        { role: "system", content: "Generate a list of learning modules and their submodules with titles and brief descriptions for the topic:" },
-        { role: "user", content: `I want to learn about ${topic}.` },
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: `Generate a list of learning modules and their submodules with titles and brief descriptions for the topic: ${topic}. The user has ${knowledgeStrength} knowledge.` },
       ],
     }, {
       headers: { Authorization: `Bearer ${AI71_API_KEY}` }
