@@ -3,18 +3,22 @@ import axios from 'axios';
 import '../app/globals.css';
 import ModuleDetail from '../components/ModuleDetail';
 import ThemeToggle from '../components/ThemeToggle';
+export const runtime = "nodejs";
 
 export default function Home() {
   const [topic, setTopic] = useState('');
   const [knowledgeStrength, setKnowledgeStrength] = useState('');
+  const [includeQuizzes, setIncludeQuizzes] = useState(false);
   const [modules, setModules] = useState([]);
   const [detailedContents, setDetailedContents] = useState({});
   const [keyTakeaways, setKeyTakeaways] = useState({});
+  const [quizzes, setQuizzes] = useState({});
   const [loading, setLoading] = useState(false);
   const [expandedModule, setExpandedModule] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
   const [searched, setSearched] = useState(false);
   const [step, setStep] = useState(1);
+  const [score, setScore] = useState(0);
 
   useEffect(() => {
     if (modules.length > 0) {
@@ -31,7 +35,6 @@ export default function Home() {
           }
         });
 
-        // Fetch key takeaways for each module
         const fetchKeyTakeaways = async () => {
           try {
             const response = await axios.post('/api/key-takeaways', { moduleTitle: module.title });
@@ -45,9 +48,25 @@ export default function Home() {
         };
 
         fetchKeyTakeaways();
+
+        if (includeQuizzes) {
+          const fetchQuiz = async () => {
+            try {
+              const response = await axios.post('/api/quiz', { moduleTitle: module.title });
+              setQuizzes(prevState => ({
+                ...prevState,
+                [module.title]: response.data.quiz,
+              }));
+            } catch (error) {
+              console.error('Error fetching quiz:', error);
+            }
+          };
+
+          fetchQuiz();
+        }
       });
     }
-  }, [modules]);
+  }, [modules, includeQuizzes]);
 
   const handleTopicSubmit = async (e) => {
     e.preventDefault();
@@ -62,6 +81,7 @@ export default function Home() {
     setKeyTakeaways({});
     setExpandedModule(null);
     setSearched(true);
+    setScore(0);
 
     try {
       const response = await axios.post('/api/modules', { topic, knowledgeStrength });
@@ -79,6 +99,16 @@ export default function Home() {
     setShowDetail(true);
   };
 
+  const handleQuizSubmit = (moduleTitle, quizAnswers) => {
+    let moduleScore = 0;
+    quizAnswers.forEach((answer, index) => {
+      if (answer === quizzes[moduleTitle][index].correctAnswer) {
+        moduleScore += 1;
+      }
+    });
+    setScore(prevScore => prevScore + moduleScore);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-r from-cream-light to-white dark:from-gray-800 dark:to-black flex flex-col items-center justify-center text-gray-900 dark:text-white p-4 transition duration-500 blur-background font-sans">
       <div className="absolute top-4 right-4">
@@ -86,19 +116,30 @@ export default function Home() {
       </div>
       <h1 className="text-4xl font-bold mb-6">Learn Anything</h1>
       {step === 1 && (
-        <form onSubmit={handleTopicSubmit} className="cream-box">
-          <input
-            type="text"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            placeholder="Enter a topic to learn about..."
-            required
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cream-dark dark:bg-gray-800 dark:text-white"
-          />
-          <button type="submit" className="mt-4 w-full p-2 bg-cream-dark text-black dark:bg-blue-500 dark:text-white rounded-lg hover:bg-cream-dark-200 dark:hover:bg-blue-600">
-            Next
-          </button>
-        </form>
+        <>
+          <form onSubmit={handleTopicSubmit} className="cream-box mb-4">
+            <input
+              type="text"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="Enter a topic to learn about..."
+              required
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cream-dark dark:bg-gray-800 dark:text-white"
+            />
+            <label className="flex items-center mt-4">
+              <input
+                type="checkbox"
+                checked={includeQuizzes}
+                onChange={() => setIncludeQuizzes(!includeQuizzes)}
+                className="mr-2"
+              />
+              Include quizzes
+            </label>
+            <button type="submit" className="mt-4 w-full p-2 bg-cream-dark text-black dark:bg-blue-500 dark:text-white rounded-lg hover:bg-cream-dark-200 dark:hover:bg-blue-600">
+              Next
+            </button>
+          </form>
+        </>
       )}
       {step === 2 && (
         <form onSubmit={handleKnowledgeSubmit} className="cream-box">
@@ -142,10 +183,17 @@ export default function Home() {
               submodules={expandedModule.submodules}
               detailedContents={detailedContents}
               keyTakeaways={keyTakeaways}
+              quizzes={quizzes[expandedModule.title]}
               onClose={() => setShowDetail(false)}
+              onQuizSubmit={handleQuizSubmit}
             />
           )}
         </>
+      )}
+      {step === 3 && !loading && (
+        <div className="fixed bottom-4 right-4 p-4 bg-gray-200 dark:bg-gray-700 rounded-lg shadow-lg">
+          <p className="text-lg font-bold">Final Score: {score}</p>
+        </div>
       )}
     </div>
   );
