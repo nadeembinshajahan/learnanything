@@ -122,7 +122,7 @@ export default function Home() {
               type="text"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="Enter a topic to learn about..."
+              placeholder="What do you want to learn about today?"
               required
               className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cream-dark dark:bg-gray-800 dark:text-white"
             />
@@ -158,7 +158,7 @@ export default function Home() {
             </select>
           </label>
           <button type="submit" className="mt-4 w-full p-2 bg-cream-dark text-black dark:bg-blue-500 dark:text-white rounded-lg hover:bg-cream-dark-200 dark:hover:bg-blue-600">
-            Submit
+            Learn Now!
           </button>
         </form>
       )}
