@@ -1,0 +1,37 @@
+1. Model Development LifeCycle
+This category covers the stages from data preparation and exploration through model training, evaluation, and experimentation.
+Vertex AI Datasets: Manages structured (tabular), unstructured (image, video, text), and semi-structured data for training and evaluation.
+Vertex AI Feature Store: A central repository to manage, serve, share, and reuse ML features, helping ensure consistency between training and serving.
+Vertex AI Workbench / Colab Enterprise: Managed Jupyter notebook environments for interactive data exploration, experimentation, and model development.[1] Integrates with other GCP services like BigQuery.
+AutoML: Enables training models on tabular, image, text, or video data with minimal coding, handling tasks like data splitting, algorithm selection, and hyperparameter tuning automatically.
+Custom Training: Provides full control over the training process, allowing you to use custom code, preferred ML frameworks (TensorFlow, PyTorch, Scikit-learn, XGBoost, etc.), and custom containers on managed infrastructure.
+Vertex AI Pipelines (based on Kubeflow Pipelines/TFX): Orchestrates and automates ML workflows, including data preparation, training, evaluation, and deployment steps, making the lifecycle repeatable and manageable.
+Vertex AI Experiments: Tracks parameters, metrics, and artifacts from different training runs, facilitating comparison and selection of the best models.
+Vertex AI TensorBoard: Provides visualization capabilities for monitoring and debugging ML experiments (e.g., visualizing model graphs, metrics, embeddings).
+Vertex AI Model Garden: A collection of pre-trained models (including Google's foundation models like Gemini) and reusable components (notebooks, pipelines) to accelerate development.
+Generative AI Studio: A UI-based tool for prototyping, tuning, and deploying large language models (LLMs) and other generative models.
+Vertex AI Evaluation: Tools specifically designed to evaluate model performance, including LLM evaluation.
+2.[2] Monitoring and Feedback Loops
+This focuses on observing deployed models in production and identifying issues like performance degradation, drift, or skew.[3]
+Vertex AI Model Monitoring: Tracks deployed models (AutoML Tabular and custom tabular models currently) for prediction drift (changes in data distribution over time) and training-serving skew (differences between training data and live traffic). It allows setting thresholds and configuring alerts. (Note: There's a v1 generally available and a v2 in preview with different configuration approaches).[3]
+Cloud Logging / Cloud Monitoring: Standard GCP services that integrate with Vertex AI Endpoints to log prediction requests/responses and set up custom metrics and alerts based on performance or errors. While not exclusive to Vertex AI, they are crucial for comprehensive monitoring.
+(Note: The feedback loop itself is often implemented using Vertex AI Pipelines triggered by alerts from Monitoring - see category 5).
+3.[4] Model Versioning
+This involves managing different iterations of a trained model.[5][6][7]
+Vertex AI Model Registry: A central repository to manage the lifecycle of ML models. It stores different versions of a model, allowing you to track lineage, associate metadata (like training datasets, metrics), compare versions, and manage deployment stages (e.g., staging, production). Models trained via AutoML or Custom Training can be registered here. You can upload new versions linked to a parent model.
+(Implicit Versioning): Vertex AI Pipelines runs, Vertex AI Datasets, and Feature Store artifacts also inherently have versions, contributing to overall reproducibility, but the Model Registry is the primary tool for trained model versioning.
+4. Model Interpretability and Explainability
+This category focuses on understanding why a model makes certain predictions.[8]
+Vertex AI Explainable AI: Integrates feature attribution methods (like Sampled Shapley, Integrated Gradients, XRAI) to quantify the contribution of each input feature to a model's prediction.[9][10] It supports both AutoML models (Tabular, Image) and custom-trained models deployed on Vertex AI.[1] It can help understand model behavior, debug issues, and ensure fairness. Example-based explanations are also offered.
+5. Continuous Feedback Implementation
+This involves setting up automated processes where production monitoring insights trigger actions like retraining or model updates. This is less a single tool and more an orchestrated process using multiple Vertex AI components:
+Vertex AI Model Monitoring: Provides the crucial signals (detection of drift or skew exceeding thresholds) that indicate a need for intervention.
+Vertex AI Pipelines: The core component for automating the response. A pipeline can be designed to:
+Be triggered by alerts from Model Monitoring (e.g., via Cloud Functions or Pub/Sub).
+Fetch new data (potentially including feedback data captured separately).
+Retrain the model using Custom Training or AutoML.
+Evaluate the newly trained model.
+Register the new model version in the Model Registry.
+Potentially deploy the new version to an endpoint (after validation).
+Cloud Functions / Pub/Sub: Often used as the "glue" to connect monitoring alerts to pipeline triggers.
+In essence, Vertex AI facilitates continuous feedback loops by integrating its monitoring capabilities with its powerful workflow automation tool (Pipelines).
