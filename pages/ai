@@ -1,0 +1,23 @@
+Data analysis: Vertex AI Workbench (Managed Notebooks) - Ideal for interactive exploration, visualization, and analysis of data before building pipelines.
+Feature store: Vertex AI Feature Store - Directly corresponds to the concept of a centralized repository for features.
+Orchestrated experiment (including Data validation, Data preparation, Model training, Model evaluation, Model validation within it): Vertex AI Pipelines - Used to define, run, and manage the sequence of steps (components) in an ML workflow for experimentation. Vertex AI Experiments can be used to track and compare runs of these pipelines.
+Individual steps (Data validation, preparation, training, evaluation, validation) are implemented as components within the pipeline, potentially using:
+Custom code containers
+Vertex AI Training (for the training step)
+Vertex AI Model Evaluation tools/components
+Other GCP services like BigQuery or Dataflow invoked from pipeline components.
+Model analysis: Vertex AI Model Evaluation (for metrics, comparisons) and Explainable AI (for feature attributions, model understanding). Vertex AI Workbench can also be used for deeper, custom analysis.
+Source code / Source repository: While not strictly Vertex AI, this integrates tightly. Code is typically stored in Cloud Source Repositories (or GitHub/GitLab etc.) and used by Vertex AI Pipelines and Training.
+Pipeline deployment: This process typically involves using CI/CD tools (like Cloud Build) integrated with the Source Repository to compile and register/update pipelines in Vertex AI Pipelines.
+Automated pipeline (including Data extraction, Data validation, Data preparation, Model training, Model evaluation, Model validation within it): Vertex AI Pipelines - This represents the production instance of the ML workflow, triggered automatically.
+Individual steps are again components within this production pipeline, similar to the experimentation pipeline.
+Trigger: Various options depending on the trigger type:
+Cloud Scheduler (for time-based triggers)
+Cloud Functions / Cloud Run (for event-based triggers, e.g., new data in GCS)
+Pub/Sub events triggering a function/service that starts a pipeline run via the Vertex AI API/SDK.
+ML metadata store: Vertex AI ML Metadata - Automatically captures metadata from Vertex AI Pipelines, Training, etc.
+Model registry: Vertex AI Model Registry - Used to store, version, and manage trained models outputted by pipelines.
+Trained model: This artifact is stored and managed within the Vertex AI Model Registry. The underlying storage is typically Google Cloud Storage (GCS).
+CD: Model serving: This deployment process uses CI/CD (e.g., Cloud Build) to take a model from the Vertex AI Model Registry and deploy it to Vertex AI Prediction.
+Prediction service: Vertex AI Prediction (specifically, a deployed Endpoint hosting the model).
+Performance monitoring: Vertex AI Model Monitoring - Used to monitor deployed models for prediction drift and data skew/drift.
