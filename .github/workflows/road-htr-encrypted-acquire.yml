@@ -25,18 +25,18 @@ jobs:
           set -euo pipefail
           cat > /tmp/road-public.pem <<'PUBLIC_KEY'
           -----BEGIN PUBLIC KEY-----
-          MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAv4yaaDF0WoQ3fCWgOkuc
-          xbaAj2sLx2tZgLc5pA0bfOt6jLC1NkaMv8uVzYhljfzJ8EyPDx/yxbu7npTJ+3n7
-          hK23/DZl/w6w6xdWQoXYGbNRVn6oq6Y4X74cz4GFKEHiclEt97nzeUs1kf0xLC0w
-          4WD4bW7gJND/d0QvV5b0ddGpfBaEUuM0QjS3gzWBBqeMJa+uD7b2/2KPeH9LvYPP
-          c36bRJ95YzkoveL7WbkJ8NF5WEufCSUFxs7EJtJM5cvaqBhIKo5E2EliNDyYWi9+
-          dwhhfS3pHI0aiq9Slgqi6+p8s1yc2OgWW+hsHB23aahh+9tS8g6uAuQ4kuUahr3j
-          rFpOVlM6L2sC0F2jmYSFY0YAZDkDRZT2RzziC2Xiy4GQl8OZh6sow1aq/E4fBTgW
-          wYKW0NV0VdEInf6zTLRNSZoKGpxZr/wHpazAJpX4OT4OqwZw+2sUwfer4RmOMvNZ
-          AK/A74hBJDUQmRKuvCJ1z6Op+G5GKeRinmphfEVFswyCBHlyDTICYfaaEEeeQFXQ
-          NMk5tlD/BAs1Gvmawojanlam2CUYVngWCeXzRldmPXzeINoYXmRKLMlSI/HzXtpV
-          YvZtu+7TgRQPaW6Dmx+AC69nMV0VE/YfjTRL4iDNRaU5XErXIl6ij5CuWZURQX2J
-          O/nN0r8QAmsjhrcutyQm5dkCAwEAAQ==
+          MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA1PwVxjE4lEswXN/NplZy
+          YBiQ70jMwqrbeU0ENoutRFtcmqrGU6EqI4k2r64BgTQ02TEeib+1XTN/JOL2MPeN
+          UpyYOcYfqPMKOdR9Nxm2a96yp6jM2zrFCNP0VBUSo07yojNU0VPplPpYi/B6zkYb
+          kfPzAHrDV1Tsgbo4gnJtBI5ZCoSGoIw0XNeTsF95ZisPTAXRPBZm70fgPHIrNmyu
+          qq1V411WlbjiYRJ1aF40ZZiKGlUQw6ZaSg55KPsPgUp0bGUQZiIN/pijWpIy31yC
+          rxIwedv4WweUG+JDMIaVkySXLO2HogJUqva6Q8x/uW300OKug7hi4bGe4mHslZ5k
+          36AmfIlYV9a/Ty1jXYg2WU7kPhi5hGfI3lB52UX+wgfWXfL5UC1cSISYln9iLLgi
+          HG2MRW5gTvomU/8kPferEqj2e7EEjDvULkF2dXDNS3/qQXYNY+OKXoyIBb/STFC+
+          bZj2mcrrNaE405nGN6z/3u86UsCCFMYNk4o3aQ7XPXEHTO8QhqtH1v7LR5MDs3zP
+          u3RILtpA2T77a+H14bQDUfq1AsDr1hSIX+VJwHbCRaU5JVsHHOnaIqPOQbMVmoC/
+          580mUZahf4H8wA+W+BG1LrKGX3r1McijMSOqHYl3ZxFxBIy3Zu+F58QS1nb5+pVy
+          zBVbDwJiIYq3EhrVk6Yt9bkCAwEAAQ==
           -----END PUBLIC KEY-----
           PUBLIC_KEY
           sed -i 's/^          //' /tmp/road-public.pem
