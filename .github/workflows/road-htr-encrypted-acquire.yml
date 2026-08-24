@@ -13,70 +13,40 @@ permissions:
 
 env:
   IMAGE_URL: https://storage.googleapis.com/road-handwriting/images.zip
-  RECIPIENT_FINGERPRINT: ABE9BD54770F5CAF850608BDECB03C40A6D6A552
 
 jobs:
   acquire-encrypt:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - name: Import one-time session public key
+      - name: Install one-time session public key
         shell: bash
         run: |
           set -euo pipefail
-          cat > /tmp/road-public.asc <<'PUBLIC_KEY'
-          -----BEGIN PGP PUBLIC KEY BLOCK-----
-
-          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
-          hEo=
-          =O7CT
-          -----END PGP PUBLIC KEY BLOCK-----
+          cat > /tmp/road-public.pem <<'PUBLIC_KEY'
+          -----BEGIN PUBLIC KEY-----
+          MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAv4yaaDF0WoQ3fCWgOkuc
+          xbaAj2sLx2tZgLc5pA0bfOt6jLC1NkaMv8uVzYhljfzJ8EyPDx/yxbu7npTJ+3n7
+          hK23/DZl/w6w6xdWQoXYGbNRVn6oq6Y4X74cz4GFKEHiclEt97nzeUs1kf0xLC0w
+          4WD4bW7gJND/d0QvV5b0ddGpfBaEUuM0QjS3gzWBBqeMJa+uD7b2/2KPeH9LvYPP
+          c36bRJ95YzkoveL7WbkJ8NF5WEufCSUFxs7EJtJM5cvaqBhIKo5E2EliNDyYWi9+
+          dwhhfS3pHI0aiq9Slgqi6+p8s1yc2OgWW+hsHB23aahh+9tS8g6uAuQ4kuUahr3j
+          rFpOVlM6L2sC0F2jmYSFY0YAZDkDRZT2RzziC2Xiy4GQl8OZh6sow1aq/E4fBTgW
+          wYKW0NV0VdEInf6zTLRNSZoKGpxZr/wHpazAJpX4OT4OqwZw+2sUwfer4RmOMvNZ
+          AK/A74hBJDUQmRKuvCJ1z6Op+G5GKeRinmphfEVFswyCBHlyDTICYfaaEEeeQFXQ
+          NMk5tlD/BAs1Gvmawojanlam2CUYVngWCeXzRldmPXzeINoYXmRKLMlSI/HzXtpV
+          YvZtu+7TgRQPaW6Dmx+AC69nMV0VE/YfjTRL4iDNRaU5XErXIl6ij5CuWZURQX2J
+          O/nN0r8QAmsjhrcutyQm5dkCAwEAAQ==
+          -----END PUBLIC KEY-----
           PUBLIC_KEY
-          sed -i 's/^          //' /tmp/road-public.asc
-          gpg --batch --import /tmp/road-public.asc
-          gpg --batch --with-colons --list-keys "$RECIPIENT_FINGERPRINT" | grep -q '^pub:'
+          sed -i 's/^          //' /tmp/road-public.pem
+          openssl pkey -pubin -in /tmp/road-public.pem -noout -text >/dev/null
 
-      - name: Fetch and validate organizer archive
+      - name: Fetch and validate organiser archive
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p plaintext encrypted
+          mkdir -p plaintext encrypted secrets
           curl --location --fail --show-error \
             --retry 20 --retry-delay 5 --retry-all-errors \
             --continue-at - \
@@ -90,17 +60,52 @@ jobs:
             unzip -Z1 plaintext/images.zip | wc -l | awk '{print "archive_entries=" $1}'
           } | tee encrypted/download_report.txt
 
-      - name: Encrypt archive before artifact upload
+      - name: Encrypt and authenticate before artifact upload
         shell: bash
         run: |
           set -euo pipefail
-          gpg --batch --yes --trust-model always \
-            --recipient "$RECIPIENT_FINGERPRINT" \
-            --output encrypted/images.zip.gpg \
-            --encrypt plaintext/images.zip
-          gpg --list-packets encrypted/images.zip.gpg >/dev/null
-          stat --printf='ciphertext_size_bytes=%s\n' encrypted/images.zip.gpg >> encrypted/download_report.txt
-          rm -f plaintext/images.zip
+          openssl rand -out secrets/aes.key 32
+          openssl rand -out secrets/hmac.key 32
+          openssl rand -out secrets/aes.iv 16
+
+          AES_HEX="$(xxd -p -c 256 secrets/aes.key)"
+          HMAC_HEX="$(xxd -p -c 256 secrets/hmac.key)"
+          IV_HEX="$(xxd -p -c 256 secrets/aes.iv)"
+
+          openssl enc -aes-256-cbc \
+            -K "$AES_HEX" -iv "$IV_HEX" \
+            -in plaintext/images.zip \
+            -out encrypted/images.zip.enc
+
+          openssl dgst -sha256 \
+            -mac HMAC -macopt "hexkey:$HMAC_HEX" \
+            -binary encrypted/images.zip.enc \
+            > encrypted/images.zip.enc.hmac
+
+          cat secrets/aes.key secrets/hmac.key secrets/aes.iv > secrets/keyblob.bin
+          test "$(stat -c %s secrets/keyblob.bin)" -eq 80
+
+          openssl pkeyutl -encrypt \
+            -pubin -inkey /tmp/road-public.pem \
+            -pkeyopt rsa_padding_mode:oaep \
+            -pkeyopt rsa_oaep_md:sha256 \
+            -pkeyopt rsa_mgf1_md:sha256 \
+            -in secrets/keyblob.bin \
+            -out encrypted/keyblob.enc
+
+          {
+            echo "encryption=AES-256-CBC"
+            echo "authentication=HMAC-SHA256(ciphertext)"
+            echo "key_wrap=RSA-4096-OAEP-SHA256"
+            stat --printf='ciphertext_size_bytes=%s\n' encrypted/images.zip.enc
+            sha256sum encrypted/images.zip.enc encrypted/images.zip.enc.hmac encrypted/keyblob.enc
+          } >> encrypted/download_report.txt
+
+          rm -rf plaintext secrets /tmp/road-public.pem
+          test ! -e plaintext/images.zip
+          test -s encrypted/images.zip.enc
+          test -s encrypted/images.zip.enc.hmac
+          test -s encrypted/keyblob.enc
 
       - name: Upload ciphertext-only artifact
         uses: actions/upload-artifact@v4
