@@ -1,0 +1,97 @@
+name: ROAD HTR encrypted acquisition
+
+on:
+  push:
+    branches:
+      - road-htr-encrypted-acquire
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_URL: https://storage.googleapis.com/road-handwriting/images.zip
+
+jobs:
+  acquire-encrypt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Install one-time session public key
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/road-public.pem <<'PUBLIC_KEY'
+          -----BEGIN PUBLIC KEY-----
+          MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAoXDoWSLdoTjE9EpV7lM/
+          VYklce6MNdq0wbd9JU3/4xjgUK3/NykOTEAPw9ROhVsFPf4EyqnF8oaYcejrASPC
+          RBnHfTPhoEQc1v/Hm0EkX3DkfqrxUhh3oEax1VdF1hTk3ECvmRZctCHEwm26wkJn
+          7mcT7cTfLo7ocC8y6qpotXse4XKKAsREWI/ircIYP6ItPz7LUh/FoygMBMQ+YlN5
+          hbKF+vCV/XyqgnrGk0Wv7UWTFhTqv+MN665ndXRxj0Ry2kUSzxmHCPp2SIiDVlKj
+          Kj8u7yGZ+qWZ2r8fXOuFEH4OcPVeB/mfToReWqojiM0SM3xXP0EEjrB9tzs7l+cH
+          CMJbOf90Vfhj98ls3GQOUqCvEHKr8VplLUDuQJUdVONtvc2XDW4vQjagB3heAcCy
+          63pNlgeV6yB2uruxHp7t4MCJVEcCokearZD6drg+TKfZuGYm/yPUt2G2vUvhm5yM
+          7X2iuB5Y/iioxFs3pnC4RUkPbBQWNa33rBPvOku3vA7L0zfUXsaoOpWJwdmNOxv9
+          AqdfSiPHbtSzj7+yQP3BCDvMsS4QukS7QPbggichukjlDv6U0T+joQo7FdYkap+q
+          /YVNAS4V/BLnumLiJERSeIXfB2Jj1KDZyiwYpRy230C+9iwV5TumjGywElLmXTYU
+          PtOhoJMxOlOahjqcdLl3NWECAwEAAQ==
+          -----END PUBLIC KEY-----
+          PUBLIC_KEY
+          sed -i 's/^          //' /tmp/road-public.pem
+          openssl pkey -pubin -in /tmp/road-public.pem -noout -text >/dev/null
+
+      - name: Fetch and validate organiser archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p plaintext encrypted secrets
+          curl --location --fail --show-error \
+            --retry 20 --retry-delay 5 --retry-all-errors \
+            --continue-at - \
+            --output plaintext/images.zip \
+            "$IMAGE_URL"
+          unzip -t plaintext/images.zip
+          {
+            echo "downloaded_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            stat --printf='plaintext_size_bytes=%s\n' plaintext/images.zip
+            sha256sum plaintext/images.zip | sed 's#plaintext/##'
+            unzip -Z1 plaintext/images.zip | wc -l | awk '{print "archive_entries=" $1}'
+          } | tee encrypted/download_report.txt
+
+      - name: Encrypt and authenticate before artifact upload
+        shell: bash
+        run: |
+          set -euo pipefail
+          openssl rand -out secrets/aes.key 32
+          openssl rand -out secrets/hmac.key 32
+          openssl rand -out secrets/aes.iv 16
+          AES_HEX="$(xxd -p -c 256 secrets/aes.key)"
+          HMAC_HEX="$(xxd -p -c 256 secrets/hmac.key)"
+          IV_HEX="$(xxd -p -c 256 secrets/aes.iv)"
+          openssl enc -aes-256-cbc -K "$AES_HEX" -iv "$IV_HEX" \
+            -in plaintext/images.zip -out encrypted/images.zip.enc
+          openssl dgst -sha256 -mac HMAC -macopt "hexkey:$HMAC_HEX" \
+            -binary encrypted/images.zip.enc > encrypted/images.zip.enc.hmac
+          cat secrets/aes.key secrets/hmac.key secrets/aes.iv > secrets/keyblob.bin
+          test "$(stat -c %s secrets/keyblob.bin)" -eq 80
+          openssl pkeyutl -encrypt -pubin -inkey /tmp/road-public.pem \
+            -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
+            -pkeyopt rsa_mgf1_md:sha256 -in secrets/keyblob.bin \
+            -out encrypted/keyblob.enc
+          {
+            echo "encryption=AES-256-CBC"
+            echo "authentication=HMAC-SHA256(ciphertext)"
+            echo "key_wrap=RSA-4096-OAEP-SHA256"
+            stat --printf='ciphertext_size_bytes=%s\n' encrypted/images.zip.enc
+            sha256sum encrypted/images.zip.enc encrypted/images.zip.enc.hmac encrypted/keyblob.enc
+          } >> encrypted/download_report.txt
+          rm -rf plaintext secrets /tmp/road-public.pem
+
+      - name: Upload ciphertext-only artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: road-images-encrypted-current
+          path: encrypted/
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
