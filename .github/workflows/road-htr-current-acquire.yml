@@ -1,0 +1,84 @@
+name: ROAD HTR current encrypted acquisition
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/road-htr-current-acquire.yml]
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_URL: https://storage.googleapis.com/road-handwriting/images.zip
+
+jobs:
+  acquire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Install session public key
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/road-public.pem <<'PUBLIC_KEY'
+          -----BEGIN PUBLIC KEY-----
+          MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAraFDpZLcU+S5gn/Gqox+
+          VZu91h/aYW1BxmuBcrbbnpA15IHjJkgonHr8jrME/zpkYQfHbihPO6lrtiGK5nyy
+          9+Veb/tWQ/JW7t02ItZGeoikEZxHEhJ/yWe9ntGUFUyKF0Zfuhi+VZIiZnP5DXpy
+          iu+KImX21tIPcHAjfsPafXoShONfu094eHuvF7OLY1Zp6Is/a9TqBTwoUO6NDgBD
+          eFwVYYzFkny3Sbo5BPQ3uuR9ptjLPg4An/QNR0Xv2SOXo7flqVcfJkl4HziB2jy9
+          lJNn3M1Fmqp5Kx6rjA2QbZNoPaVzaPmP/ltUw2jglqkvyHo/O1t5kXZAwLqmYDLb
+          hfFAbdvIarUjgZGXeGNKwAdSVpqENHOG6Tpq9OZx7aqyq6MeU5x32eg5h25fM4DA
+          C64a+uScSP8g4iwA1SxVBofiCfRIopi/8nTCVaHoFCkVyHUnJou6N6XDuXh6ohD2
+          s4xkn5YBJb5QxYk2kfoRuMe8SaH0+7bUZP4IVRBKCxxHr5sf8ZqrXsyAVOooHh7Z
+          kbB/gkwJGHqinVqAq5931uHLZhI3x47fSuebQ7w4sPKo9azfl8oi4B9UXf0CetmM
+          9wlcSQ3xl0kEaeqQsxJy414rij5XAGmMQrsMDmPcoka+mVE91fZpS9xxVsLTFrWL
+          pxJWsiqXUpvLmLr/VDkf5R0CAwEAAQ==
+          -----END PUBLIC KEY-----
+          PUBLIC_KEY
+          sed -i 's/^          //' /tmp/road-public.pem
+          openssl pkey -pubin -in /tmp/road-public.pem -noout
+
+      - name: Download and validate organiser archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p plaintext encrypted
+          curl -fL --retry 20 --retry-all-errors --retry-delay 5 \
+            -o plaintext/images.zip "$IMAGE_URL"
+          unzip -t plaintext/images.zip
+          {
+            echo "downloaded_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            stat --printf='plaintext_size_bytes=%s\n' plaintext/images.zip
+            sha256sum plaintext/images.zip | sed 's#plaintext/##'
+            unzip -Z1 plaintext/images.zip | wc -l | awk '{print "archive_entries=" $1}'
+          } > encrypted/download_report.txt
+
+      - name: Encrypt and authenticate before transfer
+        shell: bash
+        run: |
+          set -euo pipefail
+          openssl rand 80 > /tmp/keyblob.bin
+          AES_KEY=$(head -c 32 /tmp/keyblob.bin | xxd -p -c 256)
+          HMAC_KEY=$(dd if=/tmp/keyblob.bin bs=1 skip=32 count=32 status=none | xxd -p -c 256)
+          IV=$(tail -c 16 /tmp/keyblob.bin | xxd -p -c 256)
+          openssl enc -aes-256-cbc -nosalt -K "$AES_KEY" -iv "$IV" \
+            -in plaintext/images.zip -out encrypted/images.zip.enc
+          openssl dgst -sha256 -mac HMAC -macopt "hexkey:$HMAC_KEY" \
+            -binary encrypted/images.zip.enc > encrypted/images.zip.enc.hmac
+          openssl pkeyutl -encrypt -pubin -inkey /tmp/road-public.pem \
+            -pkeyopt rsa_padding_mode:oaep \
+            -pkeyopt rsa_oaep_md:sha256 \
+            -pkeyopt rsa_mgf1_md:sha256 \
+            -in /tmp/keyblob.bin -out encrypted/keyblob.enc
+          sha256sum encrypted/* >> encrypted/download_report.txt
+          rm -rf plaintext /tmp/keyblob.bin
+
+      - name: Upload ciphertext-only artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: road-images-current-encrypted
+          path: encrypted/
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
