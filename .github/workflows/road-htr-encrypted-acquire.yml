@@ -25,18 +25,18 @@ jobs:
           set -euo pipefail
           cat > /tmp/road-public.pem <<'PUBLIC_KEY'
           -----BEGIN PUBLIC KEY-----
-          MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA1PwVxjE4lEswXN/NplZy
-          YBiQ70jMwqrbeU0ENoutRFtcmqrGU6EqI4k2r64BgTQ02TEeib+1XTN/JOL2MPeN
-          UpyYOcYfqPMKOdR9Nxm2a96yp6jM2zrFCNP0VBUSo07yojNU0VPplPpYi/B6zkYb
-          kfPzAHrDV1Tsgbo4gnJtBI5ZCoSGoIw0XNeTsF95ZisPTAXRPBZm70fgPHIrNmyu
-          qq1V411WlbjiYRJ1aF40ZZiKGlUQw6ZaSg55KPsPgUp0bGUQZiIN/pijWpIy31yC
-          rxIwedv4WweUG+JDMIaVkySXLO2HogJUqva6Q8x/uW300OKug7hi4bGe4mHslZ5k
-          36AmfIlYV9a/Ty1jXYg2WU7kPhi5hGfI3lB52UX+wgfWXfL5UC1cSISYln9iLLgi
-          HG2MRW5gTvomU/8kPferEqj2e7EEjDvULkF2dXDNS3/qQXYNY+OKXoyIBb/STFC+
-          bZj2mcrrNaE405nGN6z/3u86UsCCFMYNk4o3aQ7XPXEHTO8QhqtH1v7LR5MDs3zP
-          u3RILtpA2T77a+H14bQDUfq1AsDr1hSIX+VJwHbCRaU5JVsHHOnaIqPOQbMVmoC/
-          580mUZahf4H8wA+W+BG1LrKGX3r1McijMSOqHYl3ZxFxBIy3Zu+F58QS1nb5+pVy
-          zBVbDwJiIYq3EhrVk6Yt9bkCAwEAAQ==
+          MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA6GMwrGYV+4JNS1T80ocE
+          tLbYc7F6CxXFLLs82lpJ5WJ5aAe8GRcL1aWJm+0x64rGGyDEMFufs0YNqSEuagC6
+          i545fxT5Gg1STReF1BB7aSbzBXYCz6L3VoLzWjQxVy6dv1CuB5kfx1B8wkXshP+4
+          e0jGZu6IKT5vSNLzfYSezV0I7i6OkPIMPDeKLCYISp9YAsTMuG8FmqZi5pUWxa78
+          S1ntXDKglK6ug3ldNnuIAHAaMTh0IfptVh0Vgr1ZSE35gEp0x4y2LwRqZgdI1Zqs
+          NkBOuTyFuaPTeRIRnIpsQm6CmQ2Qc8yhcIZ/29FFeCJAynkvs7w9TOkmh9CKsyof
+          I4+BVErCSo+GpPPqxATALlZKeE7cacJlSHzNPDerxxtvBdLzUFc6yQeOKYobHjKr
+          Jo82x9ct7IZl+FNLoG3wiCWdGL8wse6fBFn/PNODqvvyH1MQkZJYauEeZH88ZqsE
+          B9U712aBBt2M7RuARUWUGDgq8cXbZwLqrwU3xcuwN3G1WdfI0Au0xKXkRqKz+MC5
+          SSxrg1HJLwyKEBejgvfznazQVb4MaV+cpOrg+u1EUC9KHBsNH3SND+OgdjthfXh4
+          72Dqiju11pZcHQY83L2ZZr79pk9PS1q378QNozK9QAfsrWMXefH+P3C+XrY/Snz0
+          1KYtotVqaSlo0n0R6lqEDD8CAwEAAQ==
           -----END PUBLIC KEY-----
           PUBLIC_KEY
           sed -i 's/^          //' /tmp/road-public.pem
@@ -67,32 +67,19 @@ jobs:
           openssl rand -out secrets/aes.key 32
           openssl rand -out secrets/hmac.key 32
           openssl rand -out secrets/aes.iv 16
-
           AES_HEX="$(xxd -p -c 256 secrets/aes.key)"
           HMAC_HEX="$(xxd -p -c 256 secrets/hmac.key)"
           IV_HEX="$(xxd -p -c 256 secrets/aes.iv)"
-
-          openssl enc -aes-256-cbc \
-            -K "$AES_HEX" -iv "$IV_HEX" \
-            -in plaintext/images.zip \
-            -out encrypted/images.zip.enc
-
-          openssl dgst -sha256 \
-            -mac HMAC -macopt "hexkey:$HMAC_HEX" \
-            -binary encrypted/images.zip.enc \
-            > encrypted/images.zip.enc.hmac
-
+          openssl enc -aes-256-cbc -K "$AES_HEX" -iv "$IV_HEX" \
+            -in plaintext/images.zip -out encrypted/images.zip.enc
+          openssl dgst -sha256 -mac HMAC -macopt "hexkey:$HMAC_HEX" \
+            -binary encrypted/images.zip.enc > encrypted/images.zip.enc.hmac
           cat secrets/aes.key secrets/hmac.key secrets/aes.iv > secrets/keyblob.bin
           test "$(stat -c %s secrets/keyblob.bin)" -eq 80
-
-          openssl pkeyutl -encrypt \
-            -pubin -inkey /tmp/road-public.pem \
-            -pkeyopt rsa_padding_mode:oaep \
-            -pkeyopt rsa_oaep_md:sha256 \
-            -pkeyopt rsa_mgf1_md:sha256 \
-            -in secrets/keyblob.bin \
+          openssl pkeyutl -encrypt -pubin -inkey /tmp/road-public.pem \
+            -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
+            -pkeyopt rsa_mgf1_md:sha256 -in secrets/keyblob.bin \
             -out encrypted/keyblob.enc
-
           {
             echo "encryption=AES-256-CBC"
             echo "authentication=HMAC-SHA256(ciphertext)"
@@ -100,12 +87,7 @@ jobs:
             stat --printf='ciphertext_size_bytes=%s\n' encrypted/images.zip.enc
             sha256sum encrypted/images.zip.enc encrypted/images.zip.enc.hmac encrypted/keyblob.enc
           } >> encrypted/download_report.txt
-
           rm -rf plaintext secrets /tmp/road-public.pem
-          test ! -e plaintext/images.zip
-          test -s encrypted/images.zip.enc
-          test -s encrypted/images.zip.enc.hmac
-          test -s encrypted/keyblob.enc
 
       - name: Upload ciphertext-only artifact
         uses: actions/upload-artifact@v4
