@@ -33,9 +33,17 @@ jobs:
           conda create -y -p "$GITHUB_WORKSPACE/kraken_env" python=3.11 pip
           conda activate "$GITHUB_WORKSPACE/kraken_env"
           python -m pip install --upgrade pip
+          python -m pip install \
+            torch==2.9.0 torchvision==0.24.0 \
+            --index-url https://download.pytorch.org/whl/cpu
           python -m pip install "kraken==6.0.3" pandas pyyaml pillow numpy tqdm conda-pack
           kraken --version
           ketos --help >/dev/null
+          python - <<'PY'
+          import torch
+          assert '+cpu' in torch.__version__, torch.__version__
+          print('torch', torch.__version__)
+          PY
 
       - name: Download verified McCATMuS model
         shell: bash
@@ -54,7 +62,9 @@ jobs:
           set -euo pipefail
           source "$HOME/miniforge/etc/profile.d/conda.sh"
           conda activate "$GITHUB_WORKSPACE/kraken_env"
-          conda-pack -p "$GITHUB_WORKSPACE/kraken_env" -o runtime/kraken_env.tar.gz
+          conda-pack --ignore-missing-files \
+            -p "$GITHUB_WORKSPACE/kraken_env" \
+            -o runtime/kraken_env.tar.gz
           du -sh runtime/*
           sha256sum runtime/kraken_env.tar.gz >> runtime/SHA256SUMS.txt
 
