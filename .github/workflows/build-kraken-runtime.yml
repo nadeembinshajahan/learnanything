@@ -1,0 +1,68 @@
+name: Build portable Kraken HTR runtime
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build-kraken-runtime.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Install Miniforge
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 10 --retry-all-errors \
+            https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh \
+            -o /tmp/miniforge.sh
+          bash /tmp/miniforge.sh -b -p "$HOME/miniforge"
+          echo "$HOME/miniforge/bin" >> "$GITHUB_PATH"
+
+      - name: Create Kraken environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$HOME/miniforge/etc/profile.d/conda.sh"
+          conda create -y -p "$GITHUB_WORKSPACE/kraken_env" python=3.11 pip
+          conda activate "$GITHUB_WORKSPACE/kraken_env"
+          python -m pip install --upgrade pip
+          python -m pip install "kraken==6.0.3" pandas pyyaml pillow numpy tqdm conda-pack
+          kraken --version
+          ketos --help >/dev/null
+
+      - name: Download verified McCATMuS model
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p runtime/model
+          curl -fL --retry 10 --retry-all-errors \
+            'https://zenodo.org/records/13788177/files/McCATMuS_nfd_nofix_V1.mlmodel?download=1' \
+            -o runtime/model/McCATMuS_nfd_nofix_V1.mlmodel
+          echo 'e531463f631303c700750784b4f9ed63  runtime/model/McCATMuS_nfd_nofix_V1.mlmodel' | md5sum -c -
+          sha256sum runtime/model/McCATMuS_nfd_nofix_V1.mlmodel > runtime/SHA256SUMS.txt
+
+      - name: Pack relocatable environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$HOME/miniforge/etc/profile.d/conda.sh"
+          conda activate "$GITHUB_WORKSPACE/kraken_env"
+          conda-pack -p "$GITHUB_WORKSPACE/kraken_env" -o runtime/kraken_env.tar.gz
+          du -sh runtime/*
+          sha256sum runtime/kraken_env.tar.gz >> runtime/SHA256SUMS.txt
+
+      - name: Upload public runtime artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kraken-htr-runtime
+          path: runtime/
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
