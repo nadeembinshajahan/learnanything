@@ -56,7 +56,7 @@ jobs:
           echo 'e531463f631303c700750784b4f9ed63  runtime/model/McCATMuS_nfd_nofix_V1.mlmodel' | md5sum -c -
           sha256sum runtime/model/McCATMuS_nfd_nofix_V1.mlmodel > runtime/SHA256SUMS.txt
 
-      - name: Pack relocatable environment
+      - name: Pack and split relocatable environment
         shell: bash
         run: |
           set -euo pipefail
@@ -65,14 +65,40 @@ jobs:
           conda-pack --ignore-missing-files \
             -p "$GITHUB_WORKSPACE/kraken_env" \
             -o runtime/kraken_env.tar.gz
-          du -sh runtime/*
           sha256sum runtime/kraken_env.tar.gz >> runtime/SHA256SUMS.txt
+          split -b 280M -d -a 2 runtime/kraken_env.tar.gz runtime/kraken_env.part-
+          test -f runtime/kraken_env.part-00
+          test -f runtime/kraken_env.part-01
+          test ! -f runtime/kraken_env.part-02
+          sha256sum runtime/kraken_env.part-* >> runtime/SHA256SUMS.txt
+          rm runtime/kraken_env.tar.gz
+          du -sh runtime/*
 
-      - name: Upload public runtime artifact
+      - name: Upload runtime chunk 00
         uses: actions/upload-artifact@v4
         with:
-          name: kraken-htr-runtime
-          path: runtime/
+          name: kraken-runtime-part-00
+          path: runtime/kraken_env.part-00
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload runtime chunk 01
+        uses: actions/upload-artifact@v4
+        with:
+          name: kraken-runtime-part-01
+          path: runtime/kraken_env.part-01
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload verified model and checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: kraken-model-and-checksums
+          path: |
+            runtime/model/
+            runtime/SHA256SUMS.txt
           compression-level: 0
           retention-days: 1
           if-no-files-found: error
