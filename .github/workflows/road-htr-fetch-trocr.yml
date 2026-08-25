@@ -1,0 +1,64 @@
+name: ROAD HTR fetch TrOCR runtime
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - road-htr-model-trigger/**
+      - .github/workflows/road-htr-fetch-trocr.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Download Python wheelhouse
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifact/wheels artifact/model
+          python -m pip install --upgrade pip
+          python -m pip download --only-binary=:all: --dest artifact/wheels \
+            'transformers==4.57.6' \
+            'tokenizers==0.22.1' \
+            'huggingface_hub>=0.34,<1.0' \
+            'safetensors>=0.4.3' \
+            'sentencepiece>=0.2.0'
+          python -m pip install 'huggingface_hub>=0.34,<1.0'
+
+      - name: Download TrOCR-small handwritten checkpoint
+        env:
+          HF_HUB_DISABLE_XET: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from huggingface_hub import snapshot_download
+          path = snapshot_download(
+              repo_id='microsoft/trocr-small-handwritten',
+              local_dir='artifact/model',
+          )
+          print(path)
+          PY
+          find artifact/model -type f -printf '%P\t%s\n' | sort > artifact/model_manifest.tsv
+          find artifact/wheels -type f -printf '%P\t%s\n' | sort > artifact/wheel_manifest.tsv
+          sha256sum artifact/model/* artifact/wheels/* > artifact/SHA256SUMS.txt
+          du -sh artifact
+
+      - name: Upload model and wheelhouse
+        uses: actions/upload-artifact@v4
+        with:
+          name: road-trocr-small-runtime
+          path: artifact/
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
