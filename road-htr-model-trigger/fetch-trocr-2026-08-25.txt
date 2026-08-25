@@ -1,0 +1,2 @@
+Fetch the public Microsoft TrOCR-small handwritten checkpoint and Python wheelhouse.
+No competition data is stored in this repository.
